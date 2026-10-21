@@ -1,6 +1,14 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { AccountLookupQuery } from '../../query/account-lookup.query.js';
 import { BalanceQuery } from '../../query/balance.query.js';
+import { TransactionReceiptQuery } from '../../query/transaction-receipt.query.js';
 import { TransactionsQuery } from '../../query/transactions.query.js';
 import { CurrentUser } from '../security/current-user.decorator.js';
 import {
@@ -15,6 +23,7 @@ export class AccountsController {
     private readonly accountLookup: AccountLookupQuery,
     private readonly balance: BalanceQuery,
     private readonly transactions: TransactionsQuery,
+    private readonly transactionReceipt: TransactionReceiptQuery,
   ) {}
 
   @Get('accounts/me')
@@ -39,5 +48,14 @@ export class AccountsController {
       page: query.page,
       limit: query.limit,
     });
+  }
+
+  @Get('transactions/:reference')
+  @UseGuards(JwtAuthGuard)
+  getTransactionReceipt(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('reference', ParseUUIDPipe) reference: string,
+  ) {
+    return this.transactionReceipt.execute(user.id, reference);
   }
 }

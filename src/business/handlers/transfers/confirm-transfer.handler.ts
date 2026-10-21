@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { Account } from '../../domain/entities/account.js';
+import type { Transaction } from '../../domain/entities/transaction.js';
 import {
   AccountNotFoundError,
   BankAccountNotFoundError,
@@ -10,6 +11,10 @@ import {
 } from '../../domain/errors/errors.js';
 import { TransactionStatus } from '../../domain/values/transaction-status.js';
 import { TransactionType } from '../../domain/values/transaction-type.js';
+import {
+  type BankDirectoryPort,
+  findBankName,
+} from '../../ports/bank-directory.port.js';
 import type { ClockPort } from '../../ports/clock.port.js';
 import type { PasskeyVerifierPort } from '../../ports/passkey-verifier.port.js';
 import type { UnitOfWorkPort } from '../../ports/unit-of-work.port.js';
@@ -28,10 +33,16 @@ export interface ConfirmTransferRequest {
 export interface ConfirmTransferResult {
   reference: string;
   balanceKobo: number;
+  amountKobo: number;
+  recipientName: string;
+  accountNumber: string;
+  bankCode: string;
+  bankName: string | null;
+  completedAt: Date;
 }
 
 type Outcome =
-  | { kind: 'completed'; result: ConfirmTransferResult }
+  | { kind: 'completed'; debit: Transaction; balanceKobo: number }
   | { kind: 'expired' };
 
 @Injectable()
@@ -45,6 +56,7 @@ export class ConfirmTransferHandler extends AbstractRequestHandlerTemplate<
     private readonly users: UserRepository,
     private readonly transactions: TransactionRepository,
     private readonly passkeys: PasskeyVerifierPort,
+    private readonly bankDirectory: BankDirectoryPort,
     private readonly clock: ClockPort,
     private readonly soloBankingBankCode: string,
   ) {
@@ -58,7 +70,9 @@ export class ConfirmTransferHandler extends AbstractRequestHandlerTemplate<
       this.confirm(request, tx),
     );
     if (outcome.kind === 'expired') throw new TransferExpiredError();
-    return CommandResponse.of(outcome.result);
+    return CommandResponse.of(
+      await this.toResult(outcome.debit, outcome.balanceKobo),
+    );
   }
 
   private async confirm(
@@ -83,10 +97,8 @@ export class ConfirmTransferHandler extends AbstractRequestHandlerTemplate<
     if (debit.isCompleted()) {
       return {
         kind: 'completed',
-        result: {
-          reference: debit.id,
-          balanceKobo: debit.props.balanceAfterKobo ?? sender.balanceKobo,
-        },
+        debit,
+        balanceKobo: debit.props.balanceAfterKobo ?? sender.balanceKobo,
       };
     }
     if (!debit.isPending()) throw new TransferNotPendingError();
@@ -150,9 +162,32 @@ export class ConfirmTransferHandler extends AbstractRequestHandlerTemplate<
 
     return {
       kind: 'completed',
-      result: { reference: debit.id, balanceKobo: lockedSender.balanceKobo },
+      debit,
+      balanceKobo: lockedSender.balanceKobo,
     };
   }
+
+  private async toResult(
+    debit: Transaction,
+    balanceKobo: number,
+  ): Promise<ConfirmTransferResult> {
+    const bankCode = debit.props.bankCode ?? '';
+    return {
+      reference: debit.id,
+      balanceKobo,
+      amountKobo: debit.props.amountKobo,
+      recipientName: debit.props.counterpartyName ?? '',
+      accountNumber: debit.props.counterpartyAccountNumber ?? '',
+      bankCode,
+      bankName: await findBankName(
+        this.bankDirectory,
+        this.soloBankingBankCode,
+        bankCode,
+      ),
+      completedAt: debit.props.completedAt ?? debit.props.createdAt,
+    };
+  }
+
 
   private async findSoloBankingRecipient(
     bankCode: string | null,

@@ -48,6 +48,12 @@ export class TransferNotPendingError extends DomainError {
   }
 }
 
+export class TransactionNotFoundError extends DomainError {
+  constructor(message = 'Transaction not found') {
+    super('TRANSACTION_NOT_FOUND', 404, message);
+  }
+}
+
 export class TransferNotFoundError extends DomainError {
   constructor(message = 'Transfer not found') {
     super('TRANSFER_NOT_FOUND', 404, message);

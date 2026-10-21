@@ -12,6 +12,7 @@ import {
 import {
   ACCOUNT_REPOSITORY,
   BENEFICIARY_REPOSITORY,
+  REVOKED_TOKEN_REPOSITORY,
   TRANSACTION_REPOSITORY,
   USER_REPOSITORY,
 } from '../../business/repositories/tokens.js';
@@ -23,6 +24,7 @@ import { PaystackBankDirectory } from '../adapters/paystack-bank-directory.js';
 import { SystemClock } from '../adapters/system-clock.js';
 import { SequelizeAccountRepository } from '../repositories/sequelize-account.repository.js';
 import { SequelizeBeneficiaryRepository } from '../repositories/sequelize-beneficiary.repository.js';
+import { SequelizeRevokedTokenRepository } from '../repositories/sequelize-revoked-token.repository.js';
 import { SequelizeTransactionRepository } from '../repositories/sequelize-transaction.repository.js';
 import { SequelizeUnitOfWork } from '../repositories/sequelize-unit-of-work.js';
 import { SequelizeUserRepository } from '../repositories/sequelize-user.repository.js';
@@ -35,6 +37,7 @@ export const repositoryProviders: Provider[] = [
   { provide: ACCOUNT_REPOSITORY, useClass: SequelizeAccountRepository },
   { provide: BENEFICIARY_REPOSITORY, useClass: SequelizeBeneficiaryRepository },
   { provide: TRANSACTION_REPOSITORY, useClass: SequelizeTransactionRepository },
+  { provide: REVOKED_TOKEN_REPOSITORY, useClass: SequelizeRevokedTokenRepository },
 ];
 
 export const adapterProviders: Provider[] = [

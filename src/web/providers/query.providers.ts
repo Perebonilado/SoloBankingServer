@@ -4,6 +4,7 @@ import { BalanceQuery } from '../../query/balance.query.js';
 import { BankAccountQuery } from '../../query/bank-account.query.js';
 import { BanksQuery } from '../../query/banks.query.js';
 import { BeneficiariesQuery } from '../../query/beneficiaries.query.js';
+import { TransactionReceiptQuery } from '../../query/transaction-receipt.query.js';
 import { TransactionsQuery } from '../../query/transactions.query.js';
 
 export const queryProviders: Provider[] = [
@@ -13,4 +14,5 @@ export const queryProviders: Provider[] = [
   BankAccountQuery,
   BalanceQuery,
   TransactionsQuery,
+  TransactionReceiptQuery,
 ];

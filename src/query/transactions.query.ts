@@ -36,6 +36,7 @@ export class TransactionsQuery {
 
     return {
       transactions: rows.map((row) => ({
+        reference: row.id,
         type: row.type,
         amountKobo: toKobo(row.amountKobo),
         counterpartyName: row.counterpartyName,

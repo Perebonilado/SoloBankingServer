@@ -6,6 +6,12 @@ export interface IssuedToken {
   expiresIn: number;
 }
 
+export interface VerifiedToken {
+  userId: string;
+  tokenId: string;
+  expiresAt: Date;
+}
+
 export class TokenService {
   constructor(
     private readonly secret: string,
@@ -23,13 +29,22 @@ export class TokenService {
     return { token, expiresIn: (exp ?? 0) - (iat ?? 0) };
   }
 
-  verify(token: string): string | null {
+  verify(token: string): VerifiedToken | null {
     try {
       const decoded = jwt.verify(token, this.secret, { algorithms: ['HS256'] });
-      if (typeof decoded === 'string' || typeof decoded.sub !== 'string') {
+      if (
+        typeof decoded === 'string' ||
+        typeof decoded.sub !== 'string' ||
+        typeof decoded.jti !== 'string' ||
+        typeof decoded.exp !== 'number'
+      ) {
         return null;
       }
-      return decoded.sub;
+      return {
+        userId: decoded.sub,
+        tokenId: decoded.jti,
+        expiresAt: new Date(decoded.exp * 1000),
+      };
     } catch {
       return null;
     }

@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { TokenService } from '../../auth/token.service.js';
 import { SaveBeneficiaryHandler } from '../../business/handlers/beneficiaries/save-beneficiary.handler.js';
 import { LoginHandler } from '../../business/handlers/identity/login.handler.js';
+import { LogoutHandler } from '../../business/handlers/identity/logout.handler.js';
 import { ConfirmTransferHandler } from '../../business/handlers/transfers/confirm-transfer.handler.js';
 import { InitiateTransferHandler } from '../../business/handlers/transfers/initiate-transfer.handler.js';
 import type { AccountResolverPort } from '../../business/ports/account-resolver.port.js';
@@ -19,9 +20,11 @@ import {
 import type { UnitOfWorkPort } from '../../business/ports/unit-of-work.port.js';
 import type { AccountRepository } from '../../business/repositories/account.repository.js';
 import type { BeneficiaryRepository } from '../../business/repositories/beneficiary.repository.js';
+import type { RevokedTokenRepository } from '../../business/repositories/revoked-token.repository.js';
 import {
   ACCOUNT_REPOSITORY,
   BENEFICIARY_REPOSITORY,
+  REVOKED_TOKEN_REPOSITORY,
   TRANSACTION_REPOSITORY,
   USER_REPOSITORY,
 } from '../../business/repositories/tokens.js';
@@ -37,6 +40,12 @@ export const handlerProviders: Provider[] = [
       tokens: TokenService,
     ) => new LoginHandler(accounts, passkeys, tokens),
     inject: [ACCOUNT_REPOSITORY, PASSKEY_VERIFIER_PORT, TokenService],
+  },
+  {
+    provide: LogoutHandler,
+    useFactory: (revokedTokens: RevokedTokenRepository, clock: ClockPort) =>
+      new LogoutHandler(revokedTokens, clock),
+    inject: [REVOKED_TOKEN_REPOSITORY, CLOCK_PORT],
   },
   {
     provide: SaveBeneficiaryHandler,
@@ -82,6 +91,7 @@ export const handlerProviders: Provider[] = [
       users: UserRepository,
       transactions: TransactionRepository,
       passkeys: PasskeyVerifierPort,
+      bankDirectory: BankDirectoryPort,
       clock: ClockPort,
       config: ConfigService,
     ) =>
@@ -91,6 +101,7 @@ export const handlerProviders: Provider[] = [
         users,
         transactions,
         passkeys,
+        bankDirectory,
         clock,
         config.getOrThrow<string>('SOLOBANKING_BANK_CODE'),
       ),
@@ -100,6 +111,7 @@ export const handlerProviders: Provider[] = [
       USER_REPOSITORY,
       TRANSACTION_REPOSITORY,
       PASSKEY_VERIFIER_PORT,
+      BANK_DIRECTORY_PORT,
       CLOCK_PORT,
       ConfigService,
     ],
